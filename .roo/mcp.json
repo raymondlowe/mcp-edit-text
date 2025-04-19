@@ -1,0 +1,12 @@
+{
+  "mcpServers": {
+    "mcp-edit-text": {
+      "command": "uvx",
+      "args": [
+        "--from",
+        "git+https://github.com/raymondclowe/mcp-edit-text",
+        "mcp-edit-text"
+      ]
+    }
+  }
+}
