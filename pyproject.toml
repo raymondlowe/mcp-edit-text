@@ -7,3 +7,9 @@ requires-python = ">=3.12"
 dependencies = [
     "mcp[cli]>=1.6.0",
 ]
+
+[project.scripts]
+mcp-edit-text = "server:mcp.run" # Creates a command 'mcp-edit-text' that runs the server
+
+[tool.setuptools]
+py-modules = ["server"] # Explicitly include only server.py
