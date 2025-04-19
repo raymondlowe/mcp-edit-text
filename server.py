@@ -86,11 +86,17 @@ def _update_region_content(file_path: str, region_name: str, new_region_content_
 
 # --- MCP Tools ---
 
-@mcp.tool()
+@mcp.tool(name="get_regions", description="Lists all editable regions with names and line ranges from a given file.")
 def get_regions(file_path: str, ctx: Context) -> List[Dict[str, Any]]:
     """
     Lists all editable regions with names and line ranges from a given file.
-    (Implementation remains largely the same, using os.path.abspath)
+
+    Args:
+        file_path (str): The relative path to the file to analyze.
+        ctx (Context): The MCP context object.
+
+    Returns:
+        List[Dict[str, Any]]: A list of dictionaries containing region information.
     """
     regions = []
     current_region_name = None
