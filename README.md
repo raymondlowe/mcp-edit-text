@@ -10,6 +10,23 @@ You can run the server using the following command:
 uvx --from git+https://github.com/raymondclowe/mcp-edit-text mcp-edit-text
 ```
 
+## Roo Code configuration
+
+```
+{
+  "mcpServers": {
+    "mcp-edit-text": {
+      "command": "uvx",
+      "args": [
+        "--from",
+        "git+https://github.com/raymondclowe/mcp-edit-text",
+        "mcp-edit-text"
+      ]
+    }
+  }
+}
+```
+
 ## Usage
 
 This MCP server provides several tools for editing text file regions. The available tools are:
