@@ -7,7 +7,7 @@ This repository contains the source code for an MCP server that allows editing t
 You can run the server using the following command:
 
 ```bash
-uvx --from git+https://github.com/raymondclowe/mcp-edit-text mcp-edit-text
+uvx --from git+https://github.com/raymondlowe/mcp-edit-text mcp-edit-text
 ```
 
 ## Roo Code configuration
