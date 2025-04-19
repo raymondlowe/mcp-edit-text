@@ -51,3 +51,15 @@ This MCP server provides several tools for editing text file regions. The availa
    - `text_to_insert`: The text to insert.
 
 These tools enable various text editing operations within specified regions of text files.
+
+## Testing and Development
+
+To run tests against the MCP server, you can use the provided `test_client.py` script. This script creates a test HTML file, connects to the MCP server, and exercises the available tools.
+
+To run the tests, first ensure the MCP server is not running, then execute the following command in your terminal:
+
+```bash
+uv run test_client.py
+```
+
+This command will create a virtual environment, resolve dependencies, and run the tests. The output will show the results of each test, including the regions found, content retrieved, and modifications made to the test file.
