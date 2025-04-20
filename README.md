@@ -19,7 +19,7 @@ uvx --from git+https://github.com/raymondlowe/mcp-edit-text mcp-edit-text
       "command": "uvx",
       "args": [
         "--from",
-        "git+https://github.com/raymondclowe/mcp-edit-text",
+        "git+https://github.com/raymondlowe/mcp-edit-text",
         "mcp-edit-text"
       ]
     }
