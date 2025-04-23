@@ -3,6 +3,11 @@ import re
 import os
 from typing import List, Dict, Any, Tuple, Optional
 
+import markdown
+from markdown.extensions.tables import TableExtension
+from markdown.extensions.fenced_code import FencedCodeExtension
+import html2text
+
 from pydantic import Field
 from mcp.server.fastmcp import FastMCP, Context
 
@@ -11,7 +16,7 @@ BEGIN_MARKER_PATTERN = re.compile(r'<!--\s*#BeginEditable\s*"([^"]+)"\s*-->')
 END_MARKER_PATTERN = re.compile(r'<!--\s*#EndEditable\s*-->')
 
 # Create an MCP server
-mcp = FastMCP("EditTextRegionServer", description="MCP Server for editing text file regions.")
+mcp = FastMCP("FrontPageDWTRegionEditor", description="MCP Server for editing editable regions in HTML files created with Microsoft FrontPage's .DWT templating system. Only suitable for files that contain #BeginEditable regions.")
 
 # --- Helper Functions ---
 
@@ -149,7 +154,7 @@ def get_regions(
 def _find_region(file_path: str, region_name: str, ctx: Context) -> Optional[Dict[str, Any]]:
     """Finds a specific region by name in a file."""
     try:
-        regions = get_regions(file_path, ctx) # Reuse the existing tool logic
+        regions = get_regions(file_path=file_path, ctx=ctx) # Reuse the existing tool logic, pass ctx explicitly
         for region in regions:
             if region["name"] == region_name:
                 return region
@@ -164,13 +169,17 @@ def _find_region(file_path: str, region_name: str, ctx: Context) -> Optional[Dic
 @mcp.tool()
 def get_region(
     file_path: str = Field(description="The relative path to the file"),
-    region_name: str = Field(description="The name of the editable region")
+    region_name: str = Field(description="The name of the editable region"),
+    output_format: str = Field(description="The format of the output content", default="html", enum=["html", "markdown"]),
+    output_file_path: Optional[str] = Field(description="Optional path to save the extracted content to", default=None),
+    ctx: Context = Field(description="The MCP context object") # Added ctx for logging
 ) -> Optional[str]:
     """
     Retrieves the current content of a specified editable region.
+    Optionally saves the content to a specified file.
 
     Returns:
-        Optional[str]: The current content of the region, or None if not found.
+        Optional[str]: The current content of the region in the specified format, or None if not found/error.
     """
     region_info = _find_region(file_path, region_name, ctx)
     if not region_info:
@@ -180,10 +189,33 @@ def get_region(
     try:
         lines, line_ending = _read_file_lines(full_path)
         region_lines = _get_region_content_lines(lines, region_info)
-        # Join lines back, preserving original line endings implicitly via line_ending
-        # Need to handle the last line potentially not having a line ending if the original didn't
-        region_content = "".join(region_lines)
-        return region_content
+        region_content_html = "".join(region_lines) # Always get HTML first
+
+        final_content = region_content_html
+        if output_format == "markdown":
+            # Convert HTML to markdown
+            h = html2text.HTML2Text()
+            # Configure the converter if needed, e.g., h.ignore_links = True
+            final_content = h.handle(region_content_html)
+
+        # Save to file if requested
+        if output_file_path:
+            full_output_path = os.path.abspath(output_file_path)
+            try:
+                # Ensure directory exists
+                os.makedirs(os.path.dirname(full_output_path), exist_ok=True)
+                with open(full_output_path, 'w', encoding='utf-8') as f_out:
+                    f_out.write(final_content)
+                ctx.info(f"Successfully saved region '{region_name}' content ({output_format}) to '{output_file_path}'")
+            except Exception as e_write:
+                ctx.error(f"Error writing region content to file {output_file_path}: {e_write}")
+                # Continue to return the content even if writing failed, but log the error
+
+        return final_content
+
+    except Exception as e:
+        ctx.error(f"Error reading region '{region_name}' from file {file_path}: {e}")
+        raise # Re-raise to report via MCP
 
     except Exception as e:
         ctx.error(f"Error reading region '{region_name}' from file {file_path}: {e}")
@@ -194,16 +226,51 @@ def get_region(
 def put_region(
     file_path: str = Field(description="The relative path to the file"),
     region_name: str = Field(description="The name of the editable region"),
-    new_content: str = Field(description="The new content to replace with"),
+    new_content: Optional[str] = Field(description="The new content to replace with (ignored if markdown_file_path is provided)", default=None),
+    content_type: str = Field(description="The type of content being provided (ignored if markdown_file_path is provided)", default="html", enum=["html", "markdown"]),
+    markdown_file_path: Optional[str] = Field(description="Optional path to a markdown file whose content should be converted to HTML and inserted", default=None),
     ctx: Context = Field(description="The MCP context object")
 ) -> bool:
     """
     Replaces the content of a specified editable region.
+    Content can be provided directly via 'new_content' (as HTML or Markdown)
+    or by specifying a 'markdown_file_path'.
 
     Returns:
         bool: True if the replacement was successful, False otherwise.
     """
-    return _update_region_content(file_path, region_name, new_content, ctx)
+    final_html_content = ""
+
+    if markdown_file_path:
+        full_md_path = os.path.abspath(markdown_file_path)
+        if not os.path.exists(full_md_path):
+            ctx.error(f"Markdown file not found: {markdown_file_path}")
+            return False
+        try:
+            with open(full_md_path, 'r', encoding='utf-8') as md_file:
+                markdown_content = md_file.read()
+            # Convert markdown file content to HTML
+            final_html_content = markdown.markdown(markdown_content, extensions=[TableExtension(), FencedCodeExtension()])
+            ctx.info(f"Read content from markdown file: {markdown_file_path}")
+        except Exception as e:
+            ctx.error(f"Error reading or converting markdown file {markdown_file_path}: {e}")
+            return False
+    elif new_content is not None:
+        if content_type == "markdown":
+            # Convert direct markdown content to HTML
+            final_html_content = markdown.markdown(new_content, extensions=[TableExtension(), FencedCodeExtension()])
+        elif content_type == "html":
+            final_html_content = new_content
+        else:
+            # Should not happen due to enum validation, but good practice
+            ctx.error(f"Invalid content_type: {content_type}")
+            return False
+    else:
+        ctx.error("Either 'new_content' or 'markdown_file_path' must be provided.")
+        return False
+
+    # Update the region with the final HTML content
+    return _update_region_content(file_path, region_name, final_html_content, ctx)
 
 
 @mcp.tool()
@@ -221,7 +288,8 @@ def replace_in_region(
     Returns:
         bool: True if the replacement was successful, False otherwise.
     """
-    current_content = get_region(file_path, region_name, ctx)
+    # Get content as HTML since we are doing text replacement
+    current_content = get_region(file_path=file_path, region_name=region_name, output_format="html", ctx=ctx)
     if current_content is None:
         # Error already logged by get_region or _find_region
         return False
@@ -252,12 +320,6 @@ def delete_in_region(
     """
     Deletes the first occurrence of specified text within a region.
 
-    Args:
-        file_path (str): The relative path to the file.
-        region_name (str): The name of the editable region.
-        text_to_delete (str): The text to find and delete.
-        ctx (Context): The MCP context object.
-
     Returns:
         bool: True if the deletion was successful, False otherwise.
     """
@@ -286,7 +348,8 @@ def insert_before_in_region(
     Returns:
         bool: True if insertion was successful, False if find_text not found or error occurred.
     """
-    current_content = get_region(file_path, region_name, ctx)
+    # Get content as HTML for text manipulation
+    current_content = get_region(file_path=file_path, region_name=region_name, output_format="html", ctx=ctx)
     if current_content is None:
         return False
 
@@ -316,7 +379,8 @@ def insert_after_in_region(
     Returns:
         bool: True if insertion was successful, False if find_text not found or error occurred.
     """
-    current_content = get_region(file_path, region_name, ctx)
+    # Get content as HTML for text manipulation
+    current_content = get_region(file_path=file_path, region_name=region_name, output_format="html", ctx=ctx)
     if current_content is None:
         return False
 
