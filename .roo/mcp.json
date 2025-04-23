@@ -6,7 +6,9 @@
         "--from",
         "git+https://github.com/raymondclowe/mcp-edit-text",
         "mcp-edit-text"
-      ]
+      ],
+      "disabled": true,
+      "alwaysAllow": []
     }
   }
 }

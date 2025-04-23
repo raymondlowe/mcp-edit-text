@@ -95,10 +95,6 @@ def get_regions(
     """
     Lists all editable regions with names and line ranges from a given file.
 
-    Args:
-        file_path (str): The relative path to the file to analyze.
-        ctx (Context): The MCP context object.
-
     Returns:
         List[Dict[str, Any]]: A list of dictionaries containing region information.
     """
@@ -173,10 +169,6 @@ def get_region(
     """
     Retrieves the current content of a specified editable region.
 
-    Args:
-        file_path (str): The relative path to the file.
-        region_name (str): The name of the editable region.
-
     Returns:
         Optional[str]: The current content of the region, or None if not found.
     """
@@ -208,12 +200,6 @@ def put_region(
     """
     Replaces the content of a specified editable region.
 
-    Args:
-        file_path (str): The relative path to the file.
-        region_name (str): The name of the editable region.
-        new_content (str): The new content to replace with.
-        ctx (Context): The MCP context object.
-
     Returns:
         bool: True if the replacement was successful, False otherwise.
     """
@@ -231,14 +217,6 @@ def replace_in_region(
 ) -> bool:
     """
     Replaces occurrences of old_text with new_text within a specified region.
-
-    Args:
-        file_path (str): The relative path to the file.
-        region_name (str): The name of the editable region.
-        old_text (str): The text to find and replace.
-        new_text (str): The text to replace with.
-        count (int): Maximum number of occurrences to replace (-1 for all).
-        ctx (Context): The MCP context object.
 
     Returns:
         bool: True if the replacement was successful, False otherwise.
@@ -305,13 +283,6 @@ def insert_before_in_region(
     """
     Inserts text immediately before the first occurrence of find_text within a region.
 
-    Args:
-        file_path (str): The relative path to the file.
-        region_name (str): The name of the editable region.
-        find_text (str): The text to locate for insertion point.
-        text_to_insert (str): The text to insert.
-        ctx (Context): The MCP context object.
-
     Returns:
         bool: True if insertion was successful, False if find_text not found or error occurred.
     """
@@ -341,13 +312,6 @@ def insert_after_in_region(
 ) -> bool:
     """
     Inserts text immediately after the first occurrence of find_text within a region.
-
-    Args:
-        file_path (str): The relative path to the file.
-        region_name (str): The name of the editable region.
-        find_text (str): The text to locate for insertion point.
-        text_to_insert (str): The text to insert.
-        ctx (Context): The MCP context object.
 
     Returns:
         bool: True if insertion was successful, False if find_text not found or error occurred.
