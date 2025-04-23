@@ -3,6 +3,7 @@ import re
 import os
 from typing import List, Dict, Any, Tuple, Optional
 
+from pydantic import Field
 from mcp.server.fastmcp import FastMCP, Context
 
 # Define the editable region markers
@@ -87,7 +88,10 @@ def _update_region_content(file_path: str, region_name: str, new_region_content_
 # --- MCP Tools ---
 
 @mcp.tool(name="get_regions", description="Lists all editable regions with names and line ranges from a given file.")
-def get_regions(file_path: str, ctx: Context) -> List[Dict[str, Any]]:
+def get_regions(
+    file_path: str = Field(description="The relative path to the file to analyze"),
+    ctx: Context = Field(description="The MCP context object")
+) -> List[Dict[str, Any]]:
     """
     Lists all editable regions with names and line ranges from a given file.
 
@@ -162,9 +166,19 @@ def _find_region(file_path: str, region_name: str, ctx: Context) -> Optional[Dic
 
 
 @mcp.tool()
-def get_region(file_path: str, region_name: str, ctx: Context) -> Optional[str]:
+def get_region(
+    file_path: str = Field(description="The relative path to the file"),
+    region_name: str = Field(description="The name of the editable region")
+) -> Optional[str]:
     """
     Retrieves the current content of a specified editable region.
+
+    Args:
+        file_path (str): The relative path to the file.
+        region_name (str): The name of the editable region.
+
+    Returns:
+        Optional[str]: The current content of the region, or None if not found.
     """
     region_info = _find_region(file_path, region_name, ctx)
     if not region_info:
@@ -183,29 +197,51 @@ def get_region(file_path: str, region_name: str, ctx: Context) -> Optional[str]:
         ctx.error(f"Error reading region '{region_name}' from file {file_path}: {e}")
         raise
 
+
 @mcp.tool()
-def put_region(file_path: str, region_name: str, new_content: str, ctx: Context) -> bool:
+def put_region(
+    file_path: str = Field(description="The relative path to the file"),
+    region_name: str = Field(description="The name of the editable region"),
+    new_content: str = Field(description="The new content to replace with"),
+    ctx: Context = Field(description="The MCP context object")
+) -> bool:
     """
-    Replaces the content of a specified editable region. (Uses helper)
+    Replaces the content of a specified editable region.
+
+    Args:
+        file_path (str): The relative path to the file.
+        region_name (str): The name of the editable region.
+        new_content (str): The new content to replace with.
+        ctx (Context): The MCP context object.
+
+    Returns:
+        bool: True if the replacement was successful, False otherwise.
     """
     return _update_region_content(file_path, region_name, new_content, ctx)
 
 
 @mcp.tool()
-def replace_in_region(file_path: str, region_name: str, old_text: str, new_text: str, count: int = -1, ctx: Context = Context()) -> bool:
+def replace_in_region(
+    file_path: str = Field(description="The relative path to the file"),
+    region_name: str = Field(description="The name of the editable region"),
+    old_text: str = Field(description="The text to find and replace"),
+    new_text: str = Field(description="The text to replace with"),
+    count: int = Field(description="Maximum number of occurrences to replace (-1 for all)", default=-1),
+    ctx: Context = Field(description="The MCP context object", default=Context())
+) -> bool:
     """
     Replaces occurrences of old_text with new_text within a specified region.
 
     Args:
-        file_path: The relative path to the file.
-        region_name: The name of the editable region.
-        old_text: The text to find and replace.
-        new_text: The text to replace with.
-        count: Maximum number of occurrences to replace (-1 for all).
-        ctx: The MCP context object.
+        file_path (str): The relative path to the file.
+        region_name (str): The name of the editable region.
+        old_text (str): The text to find and replace.
+        new_text (str): The text to replace with.
+        count (int): Maximum number of occurrences to replace (-1 for all).
+        ctx (Context): The MCP context object.
 
     Returns:
-        True if the replacement was successful, False otherwise.
+        bool: True if the replacement was successful, False otherwise.
     """
     current_content = get_region(file_path, region_name, ctx)
     if current_content is None:
@@ -229,18 +265,23 @@ def replace_in_region(file_path: str, region_name: str, old_text: str, new_text:
 
 
 @mcp.tool()
-def delete_in_region(file_path: str, region_name: str, text_to_delete: str, ctx: Context = Context()) -> bool:
+def delete_in_region(
+    file_path: str = Field(description="The relative path to the file"),
+    region_name: str = Field(description="The name of the editable region"),
+    text_to_delete: str = Field(description="The text to find and delete"),
+    ctx: Context = Field(description="The MCP context object", default=Context())
+) -> bool:
     """
     Deletes the first occurrence of specified text within a region.
 
     Args:
-        file_path: The relative path to the file.
-        region_name: The name of the editable region.
-        text_to_delete: The text to find and delete.
-        ctx: The MCP context object.
+        file_path (str): The relative path to the file.
+        region_name (str): The name of the editable region.
+        text_to_delete (str): The text to find and delete.
+        ctx (Context): The MCP context object.
 
     Returns:
-        True if the deletion was successful, False otherwise.
+        bool: True if the deletion was successful, False otherwise.
     """
     # Use replace_in_region with count=1 and empty new_text
     return replace_in_region(
@@ -254,19 +295,25 @@ def delete_in_region(file_path: str, region_name: str, text_to_delete: str, ctx:
 
 
 @mcp.tool()
-def insert_before_in_region(file_path: str, region_name: str, find_text: str, text_to_insert: str, ctx: Context = Context()) -> bool:
+def insert_before_in_region(
+    file_path: str = Field(description="The relative path to the file"),
+    region_name: str = Field(description="The name of the editable region"),
+    find_text: str = Field(description="The text to locate for insertion point"),
+    text_to_insert: str = Field(description="The text to insert"),
+    ctx: Context = Field(description="The MCP context object", default=Context())
+) -> bool:
     """
     Inserts text immediately before the first occurrence of find_text within a region.
 
     Args:
-        file_path: The relative path to the file.
-        region_name: The name of the editable region.
-        find_text: The text to locate for insertion point.
-        text_to_insert: The text to insert.
-        ctx: The MCP context object.
+        file_path (str): The relative path to the file.
+        region_name (str): The name of the editable region.
+        find_text (str): The text to locate for insertion point.
+        text_to_insert (str): The text to insert.
+        ctx (Context): The MCP context object.
 
     Returns:
-        True if insertion was successful, False if find_text not found or error occurred.
+        bool: True if insertion was successful, False if find_text not found or error occurred.
     """
     current_content = get_region(file_path, region_name, ctx)
     if current_content is None:
@@ -285,19 +332,25 @@ def insert_before_in_region(file_path: str, region_name: str, find_text: str, te
 
 
 @mcp.tool()
-def insert_after_in_region(file_path: str, region_name: str, find_text: str, text_to_insert: str, ctx: Context = Context()) -> bool:
+def insert_after_in_region(
+    file_path: str = Field(description="The relative path to the file"),
+    region_name: str = Field(description="The name of the editable region"),
+    find_text: str = Field(description="The text to locate for insertion point"),
+    text_to_insert: str = Field(description="The text to insert"),
+    ctx: Context = Field(description="The MCP context object", default=Context())
+) -> bool:
     """
     Inserts text immediately after the first occurrence of find_text within a region.
 
     Args:
-        file_path: The relative path to the file.
-        region_name: The name of the editable region.
-        find_text: The text to locate for insertion point.
-        text_to_insert: The text to insert.
-        ctx: The MCP context object.
+        file_path (str): The relative path to the file.
+        region_name (str): The name of the editable region.
+        find_text (str): The text to locate for insertion point.
+        text_to_insert (str): The text to insert.
+        ctx (Context): The MCP context object.
 
     Returns:
-        True if insertion was successful, False if find_text not found or error occurred.
+        bool: True if insertion was successful, False if find_text not found or error occurred.
     """
     current_content = get_region(file_path, region_name, ctx)
     if current_content is None:
