@@ -15,7 +15,7 @@ uvx --from git+https://github.com/raymondlowe/mcp-edit-text mcp-edit-text
 ```
 {
   "mcpServers": {
-    "mcp-edit-text": {
+    ""FrontPage-DWT-Region-Editor": {": {
       "command": "uvx",
       "args": [
         "--from",
@@ -34,14 +34,18 @@ This MCP server provides several tools for editing text file regions. The availa
 1. `get_regions(file_path)`: Lists all editable regions with names and line ranges from a given file.
    - `file_path`: The relative path to the file to analyze.
 
-2. `get_region(file_path, region_name)`: Retrieves the current content of a specified editable region.
+2. `get_region(file_path, region_name, output_format="html", output_file_path=None)`: Retrieves the current content of a specified editable region.
    - `file_path`: The relative path to the file.
    - `region_name`: The name of the editable region.
+   - `output_format`: The format of the output content ("html" or "markdown"). Defaults to "html".
+   - `output_file_path`: Optional path to save the extracted content to. If provided, the content will be saved to this file.
 
-3. `put_region(file_path, region_name, new_content)`: Replaces the content of a specified editable region.
-   - `file_path`: The relative path to the file.
+3. `put_region(file_path, region_name, new_content=None, content_type="html", markdown_file_path=None)`: Replaces the content of a specified editable region. Content can be provided directly via `new_content` (as HTML or Markdown specified by `content_type`) or by specifying a `markdown_file_path`.
+   - `file_path`: The relative path to the target HTML file.
    - `region_name`: The name of the editable region.
-   - `new_content`: The new content to replace with.
+   - `new_content`: Optional. The new content string. Ignored if `markdown_file_path` is set.
+   - `content_type`: Optional. Type of `new_content` ("html" or "markdown"). Ignored if `markdown_file_path` is set. Defaults to "html".
+   - `markdown_file_path`: Optional. Path to a markdown file. If provided, its content is read, converted to HTML, and used as the new content, overriding `new_content` and `content_type`.
 
 4. `replace_in_region(file_path, region_name, old_text, new_text, count=-1)`: Replaces occurrences of `old_text` with `new_text` within a specified region.
    - `file_path`: The relative path to the file.
@@ -80,3 +84,58 @@ uv run test_client.py
 ```
 
 This command will create a virtual environment, resolve dependencies, and run the tests. The output will show the results of each test, including the regions found, content retrieved, and modifications made to the test file.
+
+## Examples
+
+### Get region content as Markdown
+
+```json
+{
+  "tool_name": "get_region",
+  "arguments": {
+    "file_path": "test_regions.html",
+    "region_name": "content",
+    "output_format": "markdown"
+  }
+}
+```
+
+### Get region content and save as Markdown file
+
+```json
+{
+  "tool_name": "get_region",
+  "arguments": {
+    "file_path": "test_regions.html",
+    "region_name": "content",
+    "output_format": "markdown",
+    "output_file_path": "extracted_content.md"
+  }
+}
+```
+
+### Put Markdown content into a region
+
+```json
+{
+  "tool_name": "put_region",
+  "arguments": {
+    "file_path": "test_regions.html",
+    "region_name": "content",
+    "new_content": "# New Title\n\nThis is **markdown** content.",
+    "content_type": "markdown"
+  }
+}
+```
+
+### Put content from a Markdown file into a region
+
+```json
+{
+  "tool_name": "put_region",
+  "arguments": {
+    "file_path": "test_regions.html",
+    "region_name": "content",
+    "markdown_file_path": "input_content.md"
+  }
+}

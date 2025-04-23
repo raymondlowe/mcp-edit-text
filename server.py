@@ -402,4 +402,22 @@ if __name__ == "__main__":
     # This allows running the server directly using 'python server.py'
     # It's useful for local testing but not required for MCP integration.
     print("Starting MCP server directly...")
+    print("""
+          ## Roo Code configuration
+
+```
+{
+  "mcpServers": {
+    ""FrontPage-DWT-Region-Editor": {": {
+      "command": "uvx",
+      "args": [
+        "--from",
+        "git+https://github.com/raymondlowe/mcp-edit-text",
+        "mcp-edit-text"
+      ]
+    }
+  }
+}
+```
+""")
     mcp.run()
